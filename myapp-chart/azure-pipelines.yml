@@ -1,0 +1,44 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  imageRepository: 'itech0306/myapp'
+  imageTag: 'latest'
+
+stages:
+
+- stage: Build
+  jobs:
+  - job: BuildPush
+    steps:
+    - task: Docker@2
+      displayName: Build and Push
+      inputs:
+        containerRegistry: 'dockerhub-service'
+        repository: 'itech0306/myapp'
+        command: 'buildAndPush'
+        Dockerfile: '**/Dockerfile'
+        tags: |
+          latest
+
+- stage: Deploy
+  jobs:
+  - job: HelmDeploy
+    steps:
+    - task: HelmInstaller@1
+      inputs:
+        helmVersionToInstall: 'latest'
+
+    - task: HelmDeploy@0
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceConnection: 'k8s-ec2-service'
+        namespace: 'dev'
+        command: 'upgrade'
+        chartType: 'FilePath'
+        chartPath: 'myapp-chart'
+        releaseName: 'myapp-release'
+        install: true
